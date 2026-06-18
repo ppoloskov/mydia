@@ -12,7 +12,7 @@ import 'season_episodes_controller.dart';
 import '../../../domain/models/show_detail.dart';
 import '../../../domain/models/season_info.dart';
 import '../../../domain/models/episode.dart';
-import '../../widgets/episode_card.dart';
+import '../../widgets/episode_rail.dart';
 import '../../widgets/quality_download_dialog.dart';
 import '../../../core/player/media_file_selector.dart';
 import '../../../core/theme/colors.dart';
@@ -347,8 +347,7 @@ class ShowDetailScreen extends ConsumerWidget {
                       files: show.nextEpisode!.files,
                       onFileSelected: (file) {
                         final nextEp = show.nextEpisode!;
-                        final title =
-                            '${show.title} - ${nextEp.episodeCode}';
+                        final title = '${show.title} - ${nextEp.episodeCode}';
                         context.push(
                           '/player/episode/${nextEp.id}?fileId=${file.id}&title=${Uri.encodeComponent(title)}&showId=$id&seasonNumber=${nextEp.seasonNumber}',
                         );
@@ -719,46 +718,35 @@ class ShowDetailScreen extends ConsumerWidget {
           );
         }
 
-        return SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final episode = episodes[index];
-                return EpisodeCard(
-                  key: ValueKey(episode.id),
-                  episode: episode,
-                  showTitle: show?.title ?? 'Unknown Show',
-                  showId: show?.id,
-                  showPosterUrl: show?.artwork.posterUrl,
-                  onTap: episode.hasFile
-                      ? () async {
-                          if (episode.files.isNotEmpty) {
-                            final screenWidth =
-                                MediaQuery.sizeOf(context).width;
-                            final deviceContext =
-                                await DeviceContext.detect(screenWidth);
-                            final selectedFile = MediaFileSelector.selectBest(
-                              episode.files,
-                              deviceContext,
-                            );
-                            if (selectedFile != null && context.mounted) {
-                              final showAsync =
-                                  ref.read(showDetailControllerProvider(id));
-                              final show = showAsync.value;
-                              final title = show != null
-                                  ? '${show.title} - ${episode.episodeCode}'
-                                  : episode.title;
-                              context.push(
-                                '/player/episode/${episode.id}?fileId=${selectedFile.id}&title=${Uri.encodeComponent(title)}&showId=$id&seasonNumber=${episode.seasonNumber}',
-                              );
-                            }
-                          }
-                        }
-                      : null,
-                );
+        return SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: EpisodeRail(
+              episodes: episodes,
+              showTitle: show?.title ?? 'Unknown Show',
+              showId: show?.id,
+              showPosterUrl: show?.artwork.posterUrl,
+              onEpisodeTap: (episode) async {
+                if (episode.files.isNotEmpty) {
+                  final screenWidth = MediaQuery.sizeOf(context).width;
+                  final deviceContext = await DeviceContext.detect(screenWidth);
+                  final selectedFile = MediaFileSelector.selectBest(
+                    episode.files,
+                    deviceContext,
+                  );
+                  if (selectedFile != null && context.mounted) {
+                    final showAsync =
+                        ref.read(showDetailControllerProvider(id));
+                    final show = showAsync.value;
+                    final title = show != null
+                        ? '${show.title} - ${episode.episodeCode}'
+                        : episode.title;
+                    context.push(
+                      '/player/episode/${episode.id}?fileId=${selectedFile.id}&title=${Uri.encodeComponent(title)}&showId=$id&seasonNumber=${episode.seasonNumber}',
+                    );
+                  }
+                }
               },
-              childCount: episodes.length,
             ),
           ),
         );
